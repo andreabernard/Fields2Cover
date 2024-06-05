@@ -38,7 +38,7 @@ TEST(fields2cover_rp_route_plan_base, simple_example) {
   f2c::sg::BruteForce bf;
   F2CSwathsByCells swaths = bf.generateSwaths(M_PI/2.0, 5, decomp_cells);
 
-  f2c::rp::RoutePlannerBase route_planner;
+  f2c::rp::OrtoolsRoutePlanner route_planner;
   F2CRoute route = route_planner.genRoute(hl_swaths[1], swaths);
 
   EXPECT_FALSE(route.isEmpty());
@@ -84,7 +84,7 @@ TEST(fields2cover_rp_route_plan_base, redirect_flag) {
   f2c::sg::BruteForce bf;
   F2CSwathsByCells swaths = bf.generateSwaths(M_PI/2.0, 5, decomp_cells);
 
-  f2c::rp::RoutePlannerBase route_planner;
+  f2c::rp::OrtoolsRoutePlanner route_planner;
   F2CRoute route = route_planner.genRoute(hl_swaths[1], swaths, false, 1e-4, false);
   
   F2CSwaths old_swaths = swaths.flatten();

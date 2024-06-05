@@ -1,4 +1,6 @@
-include_directories(${CMAKE_BINARY_DIR})
+if (NOT TARGET Fields2Cover)
+  return()
+endif()
 
 file(
   GLOB_RECURSE TEST_HEADERS
@@ -25,7 +27,7 @@ target_include_directories(
 target_link_libraries(
   unittests
   PUBLIC
-    Fields2Cover
+    ${PROJECT_NAME}::Fields2Cover
     gtest
 )
 

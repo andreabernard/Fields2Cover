@@ -60,14 +60,14 @@ class RoutePlannerBase {
       F2CGraph2D& shortest_graph,
       double d_tol, bool redirect_swaths = true) const;
 
-
+  RoutePlannerBase() = default;
   virtual ~RoutePlannerBase() = default;
 
  protected:
   /// Use the optimizer to generate the index of the points of the best
   ///   coverage route.
   virtual std::vector<int64_t> computeBestRoute(
-      const F2CGraph2D& cov_graph, bool show_log) const;
+      const F2CGraph2D& cov_graph, bool show_log) const = 0;
 
   /// Tranform index of points to an actual Route.
   virtual F2CRoute transformSolutionToRoute(

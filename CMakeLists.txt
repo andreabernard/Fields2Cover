@@ -19,7 +19,7 @@ set(PACKAGE_MAINTAINER "Gonzalo Mier")
 set(PACKAGE_URL "http://fields2cover.github.io")
 
 
-option(ALLOW_PARALLELIZATION "Allow parallel algorithms" ON)
+option(ALLOW_PARALLELIZATION "Allow parallel algorithms" Off)
 option(BUILD_TUTORIALS "Build tutorials" ON)
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_PYTHON "Build Python SWIG module" ON)
@@ -53,6 +53,8 @@ project(Fields2Cover
   VERSION "${FIELDS2COVER_VERSION_STRING}"
   DESCRIPTION "${PACKAGE_DESCRIPTION}"
 )
+
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard to use")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -183,113 +185,291 @@ elseif(USE_ORTOOLS_FETCH_SRC)
   set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
   include(CTest)
   set(ORTOOLS_TARGET "ortools")
+  set(ortools_FOUND True)
 elseif(USE_ORTOOLS_VENDOR)
   find_package(ortools_vendor CONFIG REQUIRED)
 else()
-  find_package(ortools CONFIG REQUIRED)
+  find_package(ortools CONFIG QUIET)
 endif()
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-file(GLOB_RECURSE fields2cover_src
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*/*/*.cpp"
+# -----------------------------------------------------------------------------
+# types library
+# -----------------------------------------------------------------------------
+add_library(types
+  SHARED
+    src/fields2cover/types/Cell.cpp
+    src/fields2cover/types/Cells.cpp
+    src/fields2cover/types/Field.cpp
+    src/fields2cover/types/Graph.cpp
+    src/fields2cover/types/Graph2D.cpp
+    src/fields2cover/types/LinearRing.cpp
+    src/fields2cover/types/LineString.cpp
+    src/fields2cover/types/MultiLineString.cpp
+    src/fields2cover/types/MultiPoint.cpp
+    src/fields2cover/types/Path.cpp
+    src/fields2cover/types/PathState.cpp
+    src/fields2cover/types/Point.cpp
+    src/fields2cover/types/Robot.cpp
+    src/fields2cover/types/Route.cpp
+    src/fields2cover/types/Strip.cpp
+    src/fields2cover/types/Swath.cpp
+    src/fields2cover/types/Swaths.cpp
+    src/fields2cover/types/SwathsByCells.cpp
 )
-
-list(REMOVE_ITEM fields2cover_src
-  "${CMAKE_CURRENT_SOURCE_DIR}/.*"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/.*"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/.*"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*/.*"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*/*/.*.cpp"
-)
-
-if(BUILD_SHARED_LIBS)
-  add_library(Fields2Cover SHARED ${fields2cover_src})
-else(BUILD_SHARED_LIBS)
-  add_library(Fields2Cover STATIC ${fields2cover_src})
-endif(BUILD_SHARED_LIBS)
-
-target_compile_features(Fields2Cover PUBLIC cxx_std_17)
-
-
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-  target_compile_options(Fields2Cover PRIVATE
-    -Wall -Wfatal-errors
-    -Wno-dev -Wextra -Wno-unused-parameter -Wno-sign-compare
-    -Wno-attributes -Wl,--no-undefined
-  )
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-  target_compile_options(Fields2Cover PRIVATE /W4)
-elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "^(Apple)?Clang$")
-
-endif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-
-
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  include(cmake/Modules/CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-  #if(NOT USE_ORTOOLS_FETCH_SRC)
-  #  target_compile_options(Fields2Cover PRIVATE -pedantic -Werror)
-  #endif()
-  target_compile_options(Fields2Cover PRIVATE
-    -g --coverage -fprofile-arcs -ftest-coverage -fno-inline
-  )
-  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lgcov")
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(Fields2Cover PRIVATE /O0)
-  else(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(Fields2Cover PRIVATE -O0)
-  endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-
-else (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-    target_compile_options(Fields2Cover PRIVATE /O2)
-  else(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-    target_compile_options(Fields2Cover PRIVATE -O2)
-  endif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-
-
-target_include_directories(Fields2Cover PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  $<INSTALL_INTERFACE:include/fields2cover>
-  ${EIGEN3_INCLUDE_DIRS}
-)
-
-target_link_libraries(Fields2Cover
+target_include_directories(types
   PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(types
+  PUBLIC
+    spline
+    steering_functions
     ${GDAL_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    -lgeos_c
-    ${MATH_LIBRARY}
-  PRIVATE
-    ortools::ortools
-    nlohmann_json::nlohmann_json
+)
+add_library(${PROJECT_NAME}::types ALIAS types)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL types)
+
+# -----------------------------------------------------------------------------
+# utils library
+# -----------------------------------------------------------------------------
+add_library(utils
+  SHARED
+    src/fields2cover/utils/parser.cpp
+    src/fields2cover/utils/random.cpp
+    src/fields2cover/utils/transformation.cpp
+    src/fields2cover/utils/visualizer.cpp
+)
+target_include_directories(utils
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(utils
+  PUBLIC
+    matplot
     tinyxml2::tinyxml2
+    ${PROJECT_NAME}::types
+)
+add_library(${PROJECT_NAME}::utils ALIAS utils)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL utils)
+
+# -----------------------------------------------------------------------------
+# decomposition library
+# -----------------------------------------------------------------------------
+add_library(decomposition
+  SHARED
+    src/fields2cover/decomposition/boustrophedon_decomp.cpp
+    src/fields2cover/decomposition/decomposition_base.cpp
+    src/fields2cover/decomposition/trapezoidal_decomp.cpp
+)
+target_include_directories(decomposition
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(decomposition
+  PUBLIC
+    ${PROJECT_NAME}::types
+)
+add_library(${PROJECT_NAME}::decomposition ALIAS decomposition)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL decomposition)
+
+# -----------------------------------------------------------------------------
+# objectives library
+# -----------------------------------------------------------------------------
+add_library(objectives
+  SHARED
+    src/fields2cover/objectives/decomp_obj/decomp_objective.cpp
+    src/fields2cover/objectives/hg_obj/hg_objective.cpp
+    src/fields2cover/objectives/hg_obj/rem_area.cpp
+    src/fields2cover/objectives/pp_obj/path_length.cpp
+    src/fields2cover/objectives/pp_obj/pp_objective.cpp
+    src/fields2cover/objectives/rp_obj/direct_dist_path_obj.cpp
+    src/fields2cover/objectives/rp_obj/rp_objective.cpp
+    src/fields2cover/objectives/sg_obj/field_coverage.cpp
+    src/fields2cover/objectives/sg_obj/n_swath_modified.cpp
+    src/fields2cover/objectives/sg_obj/n_swath.cpp
+    src/fields2cover/objectives/sg_obj/overlaps.cpp
+    src/fields2cover/objectives/sg_obj/sg_objective.cpp
+    src/fields2cover/objectives/sg_obj/swath_length.cpp
+    
+)
+target_include_directories(objectives
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(objectives
+  PUBLIC
+    ${PROJECT_NAME}::types
+)
+add_library(${PROJECT_NAME}::objectives ALIAS objectives)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL objectives)
+
+# -----------------------------------------------------------------------------
+# path_planning library
+# -----------------------------------------------------------------------------
+add_library(path_planning
+  SHARED
+    src/fields2cover/path_planning/dubins_curves_cc.cpp
+    src/fields2cover/path_planning/dubins_curves.cpp
+    src/fields2cover/path_planning/path_planning.cpp
+    src/fields2cover/path_planning/reeds_shepp_curves_hc.cpp
+    src/fields2cover/path_planning/reeds_shepp_curves.cpp
+    src/fields2cover/path_planning/turning_base.cpp
+
+)
+target_include_directories(path_planning
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(path_planning
+  PUBLIC
     steering_functions
     spline
-    matplot
+    ${PROJECT_NAME}::types
 )
+add_library(${PROJECT_NAME}::path_planning ALIAS path_planning)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL path_planning)
 
+# -----------------------------------------------------------------------------
+# route_planning library
+# -----------------------------------------------------------------------------
+add_library(route_planning
+  SHARED
+    src/fields2cover/route_planning/boustrophedon_order.cpp
+    src/fields2cover/route_planning/custom_order.cpp
+    src/fields2cover/route_planning/route_planner_base.cpp
+    src/fields2cover/route_planning/single_cell_swaths_order_base.cpp
+    src/fields2cover/route_planning/snake_order.cpp
+    src/fields2cover/route_planning/spiral_order.cpp
+)
+target_include_directories(route_planning
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(route_planning
+  PUBLIC
+    ${PROJECT_NAME}::types
+)
+add_library(${PROJECT_NAME}::route_planning ALIAS route_planning)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL route_planning)
+
+# -----------------------------------------------------------------------------
+# headland_generator library
+# -----------------------------------------------------------------------------
+add_library(headland_generator
+  SHARED
+    src/fields2cover/headland_generator/constant_headland.cpp
+)
+target_include_directories(headland_generator
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(headland_generator
+  PUBLIC
+    ${PROJECT_NAME}::types
+)
+add_library(${PROJECT_NAME}::headland_generator ALIAS headland_generator)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL headland_generator)
+
+# -----------------------------------------------------------------------------
+# swath_generator library
+# -----------------------------------------------------------------------------
+add_library(swath_generator
+  SHARED
+    src/fields2cover/swath_generator/brute_force.cpp
+    src/fields2cover/swath_generator/swath_generator_base.cpp
+)
+target_include_directories(swath_generator
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(swath_generator
+  PUBLIC
+    ${PROJECT_NAME}::types
+)
+add_library(${PROJECT_NAME}::swath_generator ALIAS swath_generator)
+list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL swath_generator)
+
+# -----------------------------------------------------------------------------
+# Fields2Cover library
+# -----------------------------------------------------------------------------
+if(ortools_FOUND)
+  message(STATUS "Found OrTools ${ortools_VERSION}")
+
+  add_library(Fields2Cover
+    SHARED
+      src/fields2cover.cpp
+      src/fields2cover/route_planning/ortools_route_planner.cpp
+  )
+  target_include_directories(Fields2Cover
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+      $<INSTALL_INTERFACE:include/field2cover>
+  )
+  target_link_libraries(Fields2Cover
+    PUBLIC
+      ${PROJECT_NAME}::decomposition
+      ${PROJECT_NAME}::headland_generator
+      ${PROJECT_NAME}::objectives
+      ${PROJECT_NAME}::path_planning
+      ${PROJECT_NAME}::route_planning
+      ${PROJECT_NAME}::swath_generator
+      ${PROJECT_NAME}::types
+      ${PROJECT_NAME}::utils
+    PRIVATE
+      ortools::ortools
+  )
+  set_target_properties(Fields2Cover
+    PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE
+    PUBLIC_HEADER "include/fields2cover.h"
+  )
+  add_library(${PROJECT_NAME}::Fields2Cover ALIAS Fields2Cover)
+  list(APPEND ${PROJECT_NAME}_LIB_TO_INSTALL Fields2Cover)
+endif()
 
 if(ALLOW_PARALLELIZATION)
   target_link_libraries(Fields2Cover PRIVATE tbb)
 endif(ALLOW_PARALLELIZATION)
 
-set_target_properties(Fields2Cover
-  PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE
-  PUBLIC_HEADER "include/fields2cover.h"
-)
+# target_include_directories(Fields2Cover PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>
+#   $<INSTALL_INTERFACE:include/fields2cover>
+#   ${EIGEN3_INCLUDE_DIRS}
+# )
 
+# target_link_libraries(Fields2Cover
+#   PUBLIC
+#     ${GDAL_LIBRARIES}
+#     ${CMAKE_THREAD_LIBS_INIT}
+#     -lgeos_c
+#     ${MATH_LIBRARY}
+#   PRIVATE
+#     nlohmann_json::nlohmann_json
+#     tinyxml2::tinyxml2
+#     steering_functions
+#     spline
+#     matplot
+# )
+
+
+
+#####################################################
+##################### install #######################
+#####################################################
 install(
   TARGETS
-    Fields2Cover
+    ${${PROJECT_NAME}_LIB_TO_INSTALL}
     steering_functions
     matplot
     ${ORTOOLS_TARGET}
@@ -309,6 +489,7 @@ write_basic_package_version_file(Fields2CoverConfigVersion.cmake
 
 install(
   EXPORT Fields2Cover-targets
+  NAMESPACE ${PROJECT_NAME}::
   FILE Fields2Cover-Targets.cmake
   DESTINATION "lib/cmake/fields2cover"
 )
@@ -339,7 +520,7 @@ install(
 
 export(
   TARGETS
-    Fields2Cover
+    ${${PROJECT_NAME}_LIB_TO_INSTALL}
     steering_functions
     matplot
     ${ORTOOLS_TARGET}
@@ -353,6 +534,51 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fields2cover
 )
 
+# if(BUILD_SHARED_LIBS)
+#   add_library(Fields2Cover SHARED ${fields2cover_src})
+# else(BUILD_SHARED_LIBS)
+#   add_library(Fields2Cover STATIC ${fields2cover_src})
+# endif(BUILD_SHARED_LIBS)
+
+
+# if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+#   target_compile_options(Fields2Cover PRIVATE
+#     -Wall -Wfatal-errors
+#     -Wno-dev -Wextra -Wno-unused-parameter -Wno-sign-compare
+#     -Wno-attributes -Wl,--no-undefined
+#   )
+# elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+#   target_compile_options(Fields2Cover PRIVATE /W4)
+# elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "^(Apple)?Clang$")
+
+# endif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+
+
+
+# if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   include(cmake/Modules/CodeCoverage.cmake)
+#   APPEND_COVERAGE_COMPILER_FLAGS()
+#   #if(NOT USE_ORTOOLS_FETCH_SRC)
+#   #  target_compile_options(Fields2Cover PRIVATE -pedantic -Werror)
+#   #endif()
+#   target_compile_options(Fields2Cover PRIVATE
+#     -g --coverage -fprofile-arcs -ftest-coverage -fno-inline
+#   )
+#   set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lgcov")
+
+#   if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+#     target_compile_options(Fields2Cover PRIVATE /O0)
+#   else(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+#     target_compile_options(Fields2Cover PRIVATE -O0)
+#   endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+
+# else (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+#     target_compile_options(Fields2Cover PRIVATE /O2)
+#   else(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+#     target_compile_options(Fields2Cover PRIVATE -O2)
+#   endif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+# endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 #####################################################
 #################### tutorials ######################

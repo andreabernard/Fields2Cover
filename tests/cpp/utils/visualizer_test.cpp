@@ -60,7 +60,7 @@ TEST(fields2cover_utils_visualizer, save_Route_and_Path) {
   f2c::sg::BruteForce bf;
   F2CSwathsByCells swaths = bf.generateSwaths(M_PI/2.0, 3, no_hl);
 
-  f2c::rp::RoutePlannerBase route_planner;
+  f2c::rp::OrtoolsRoutePlanner route_planner;
   F2CRoute route = route_planner.genRoute(hl_swaths[1], swaths);
 
   f2c::Visualizer::figure();

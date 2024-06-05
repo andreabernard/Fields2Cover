@@ -33,7 +33,7 @@ int main() {
   f2c::sg::BruteForce bf;
   F2CSwathsByCells swaths_c = bf.generateSwaths(M_PI/2.0, robot_c.getCovWidth(), no_hl_c);
 
-  f2c::rp::RoutePlannerBase route_planner;
+  f2c::rp::OrtoolsRoutePlanner route_planner;
   F2CRoute route = route_planner.genRoute(mid_hl_c, swaths_c);
 
   f2c::Visualizer::figure();

@@ -114,7 +114,7 @@ F2CRoute planCovRoute(const F2CRobot& robot, const F2CCells& cells,
       swaths = bf.generateSwaths(
           opt.sg_angle, robot.getCovWidth(), mainland);
   }
-  f2c::rp::RoutePlannerBase rp;
+  f2c::rp::OrtoolsRoutePlanner rp;
   return rp.genRoute(fast_hl_rings, swaths);
 }
 

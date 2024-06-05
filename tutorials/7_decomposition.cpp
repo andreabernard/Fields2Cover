@@ -70,7 +70,7 @@ int main() {
   F2CCells no_hl = const_hl.generateHeadlands(decomp_mid_hl, 1.5 * r_w);
   F2CSwathsByCells swaths = bf.generateBestSwaths(obj, r_w, no_hl);
 
-  f2c::rp::RoutePlannerBase route_planner;
+  f2c::rp::OrtoolsRoutePlanner route_planner;
   F2CRoute route = route_planner.genRoute(mid_hl, swaths);
 
   f2c::Visualizer::figure();
