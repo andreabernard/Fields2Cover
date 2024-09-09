@@ -11,9 +11,9 @@ project(Fields2Cover
 
 
 option(ALLOW_PARALLELIZATION "Allow parallel algorithms" ON)
-option(BUILD_TUTORIALS "Build tutorials" ON)
-option(BUILD_TESTS "Build tests" ON)
-option(BUILD_PYTHON "Build Python SWIG module" ON)
+option(BUILD_TUTORIALS "Build tutorials" OFF)
+option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_PYTHON "Build Python SWIG module" OFF)
 option(BUILD_DOC "Build Documentation" OFF)
 option(BUILD_SHARED_LIBS "Build shared library(.so)" ON)
 option(USE_ORTOOLS_RELEASE "Get or-tools from release tarball" OFF)
@@ -85,7 +85,7 @@ target_link_libraries(Fields2Cover
     -lgeos_c
     ${MATH_LIBRARY}
   PRIVATE
-    ortools::ortools
+    #ortools::ortools
     nlohmann_json::nlohmann_json
     tinyxml2::tinyxml2
     steering_functions
