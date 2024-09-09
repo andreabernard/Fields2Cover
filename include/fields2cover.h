@@ -51,20 +51,20 @@
 #include "fields2cover/swath_generator/brute_force.h"
 
 
-#include "fields2cover/route_planning/single_cell_swaths_order_base.h"
-#include "fields2cover/route_planning/boustrophedon_order.h"
-#include "fields2cover/route_planning/snake_order.h"
-#include "fields2cover/route_planning/spiral_order.h"
-#include "fields2cover/route_planning/custom_order.h"
+// #include "fields2cover/route_planning/single_cell_swaths_order_base.h"
+// #include "fields2cover/route_planning/boustrophedon_order.h"
+// #include "fields2cover/route_planning/snake_order.h"
+// #include "fields2cover/route_planning/spiral_order.h"
+// #include "fields2cover/route_planning/custom_order.h"
 
-#include "fields2cover/route_planning/route_planner_base.h"
+// #include "fields2cover/route_planning/route_planner_base.h"
 
-#include "fields2cover/path_planning/turning_base.h"
-#include "fields2cover/path_planning/dubins_curves.h"
-#include "fields2cover/path_planning/dubins_curves_cc.h"
-#include "fields2cover/path_planning/reeds_shepp_curves.h"
-#include "fields2cover/path_planning/reeds_shepp_curves_hc.h"
-#include "fields2cover/path_planning/path_planning.h"
+// #include "fields2cover/path_planning/turning_base.h"
+// #include "fields2cover/path_planning/dubins_curves.h"
+// #include "fields2cover/path_planning/dubins_curves_cc.h"
+// #include "fields2cover/path_planning/reeds_shepp_curves.h"
+// #include "fields2cover/path_planning/reeds_shepp_curves_hc.h"
+// #include "fields2cover/path_planning/path_planning.h"
 
 
 /// Main namespace of the fields2cover library
